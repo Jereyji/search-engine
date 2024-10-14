@@ -1,1 +1,12 @@
-links: "gazeta.ru", "lenta.ru", "ngs.ru"
+data_links:
+  - url: "https://www.gazeta.ru/"
+    selector: "a.b_ear"
+    text: "div.b_ear-title"
+  - url: "https://lenta.ru"
+    selector: "a.card-mini._topnews"
+    text: "h3.card-mini__title"
+  - url: "http://ngs.ru"
+    selector: "a.link_SrG8j"
+    text: "div.title_SrG8j"
+
+database_url: "postgresql://postgres:1234@localhost:5436/postgres"
