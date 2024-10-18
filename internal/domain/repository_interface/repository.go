@@ -6,14 +6,14 @@ import (
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 )
 
-type SearchRepository interface {
+type CrawlerRepository interface {
 	AddWordList(context context.Context, wordList *entity.WordList) (int, error)
 	DeleteWord(context context.Context, id int) error
 	GetWord(context context.Context, id int) (*entity.WordList, error)
 
 	AddURL(context context.Context, url *entity.URLList) (int, error)
 	DeleteURL(context context.Context, id int) error
-	GetURL(context context.Context, id int) (*entity.URLList, error)
+	GetURL(context context.Context, link string) (*entity.URLList, error)
 
 	AddWordLocation(context context.Context, wordLocation *entity.WordLocation) (int, error)
 	DeleteWordLocation(context context.Context, id int) error

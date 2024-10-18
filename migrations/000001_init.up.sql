@@ -1,7 +1,7 @@
 CREATE TABLE word_list (
     ID SERIAL PRIMARY KEY,
     word TEXT NOT NULL,
-    is_filtred INT
+    is_filtred BOOL
 );
 
 CREATE TABLE url_list (

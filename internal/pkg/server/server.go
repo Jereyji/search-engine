@@ -31,7 +31,7 @@ func ListenAndServe(ctx context.Context, router *router.Router) {
 				continue
 			}
 
-			if err = router.ServeConsole(writeCh, req); err != nil {
+			if err = router.ServeConsole(ctx, writeCh, req); err != nil {
 				log.Println(err)
 			}
 		case <-ctx.Done():

@@ -7,7 +7,7 @@ const (
 
 	AddUrlList    = "INSERT INTO url_list (link) VALUES ($1) RETURNING ID;"
 	DeleteUrlList = "DELETE FROM url_list WHERE ID = $1;"
-	GetUrlList    = "SELECT ID, link FROM url_list WHERE ID = $1;"
+	GetUrlList    = "SELECT ID, link FROM url_list WHERE link = $1;"
 
 	AddWordLocation    = "INSERT INTO word_location (fk_word_ID, fk_url_ID, location) VALUES ($1, $2, $3) RETURNING ID;"
 	DeleteWordLocation = "DELETE FROM word_location WHERE ID = $1;"

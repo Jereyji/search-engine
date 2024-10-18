@@ -1,10 +1,12 @@
 package service
 
 import (
-	"fmt"
-	"log"
+	"context"
 	"net/http"
+	"regexp"
+	"strings"
 
+	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/domain/repository_interface"
 	"github.com/PuerkitoBio/goquery"
 )
@@ -20,50 +22,144 @@ FUNCS:
 - getEntryId(self, tableName, fieldName, value) - получение идентификатора и добавление записи (РАЗДЕЛИТЬ)
 */
 
-type Service struct {
-	repository repository_interface.SearchRepository
+type CrawlerService struct {
+	repository repository_interface.CrawlerRepository
 }
 
-func NewService(repository repository_interface.SearchRepository) *Service {
-	return &Service{
+func NewCrawlerService(repository repository_interface.CrawlerRepository) *CrawlerService {
+	return &CrawlerService{
 		repository: repository,
 	}
 }
 
-type DataLinks []struct {
+type DataLinks struct {
 	Url      string `yaml:"url"`
 	Selector string `yaml:"selector"`
 	Text     string `yaml:"text"`
 }
 
-func Crawl(dataLinks DataLinks, maxDepth int) {
+// Загрузка страницы из списка обхода;
+// Проверка, есть ли такая страница уже в индексе, если страницы в индексе нет, то она добавляется;
+// Выделение новые ссылки со страницы и добавляются в список обхода;
+// Далее паука переходит к следующему документу.
+
+func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, maxDepth int) error {
 	for _, data := range dataLinks {
 		res, err := http.Get(data.Url)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		defer res.Body.Close()
 
 		if res.StatusCode != 200 {
-			log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+			return err
 		}
 
 		doc, err := goquery.NewDocumentFromReader(res.Body)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
-		fmt.Println(data.Url) //
+		_, err = s.repository.GetURL(context, data.Url) // CheckURL
+		if err != nil {
+			continue
+		}
 
-		doc.Find(data.Selector).Each(func(i int, s *goquery.Selection) {
-			title := s.Find(data.Text).Text()
+		curURL := entity.URLList{
+			Link: data.Url,
+		}
 
-			href, exists := s.Attr("href")
+		curURL.ID, err = s.repository.AddURL(context, &curURL) // Add to urlList(url)
+		if err != nil {
+			return err
+		}
+
+		var crawlErr error
+
+		doc.Find(data.Selector).Each(func(i int, selection *goquery.Selection) {
+			title := selection.Find(data.Text).Text()
+			words := separateText(&title)
+			if words != nil {
+				if crawlErr = s.indexingAndRecordingWords(context, words, curURL.ID); crawlErr != nil {
+					return
+				}
+			}
+
+			link, exists := selection.Attr("href") 
 			if exists {
-				fmt.Printf("Article %d:\nTitle: %s\nLink: %s\n", i, title, href)
-			} else {
-				fmt.Printf("Article %d: %s (no link found)\n", i, title)
+				_, err = s.repository.GetURL(context, link)
+				if err != nil {
+					crawlErr = err
+					return
+				}
+
+				nextURL := entity.URLList {
+					Link: link,
+				}
+
+				nextURL.ID, err = s.repository.AddURL(context, &entity.URLList{Link: nextURL.Link})
+				if err != nil {
+					crawlErr = err
+					return
+				}
+
+				_, err = s.repository.AddLinkBetweenURLs(context, &entity.LinkBetweenURL{FromURLID: curURL.ID, ToURLID: nextURL.ID})
+				if err != nil {
+					crawlErr = err
+					return
+				}
 			}
 		})
+
+		if crawlErr != nil {
+			return crawlErr
+		}
+		// return
+		// url
+		// count words
+		// count addedUrls
 	}
+
+	return nil
+}
+
+func separateText(text *string) []string {
+	if text == nil || *text == "" {
+		return nil
+	}
+
+	words := strings.Fields(*text)
+	return words
+}
+
+// add separated text and recording in wordList(word, isFiltered), wordLocation(wordID, urlID, index), linkWord(wordID, urlID)
+func (s *CrawlerService) indexingAndRecordingWords(context context.Context, words []string, urlID int) error {
+	countWords := 0
+	countFilteredWords := 0
+	re := regexp.MustCompile(`^\d+$`)
+
+	for i, word := range words {
+		needFiltered := re.MatchString(word)
+		if needFiltered {
+			countFilteredWords++
+		}
+		countWords++
+
+		wordID, err := s.repository.AddWordList(context, &entity.WordList{Word: word, IsFiltred: needFiltered})
+		if err != nil {
+			return err
+		}
+
+		_, err = s.repository.AddWordLocation(context, &entity.WordLocation{WordID: wordID, URLID: urlID, Location: i})
+		if err != nil {
+			return err
+		}
+
+		_, err = s.repository.AddLinkWord(context, &entity.LinkWord{WordID: wordID, LinkID: urlID})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
