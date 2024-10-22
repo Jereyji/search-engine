@@ -8,5 +8,3 @@ data_links:
   - url: "http://ngs.ru"
     selector: "a.link_SrG8j"
     text: "div.title_SrG8j"
-
-database_url: "postgresql://postgres:1234@localhost:5436/postgres"

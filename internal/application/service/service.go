@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -43,8 +44,7 @@ type DataLinks struct {
 // Выделение новые ссылки со страницы и добавляются в список обхода;
 // Далее паука переходит к следующему документу.
 
-func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, maxDepth int) error {
-	for _, data := range dataLinks {
+func (s *CrawlerService) Crawl(context context.Context, data DataLinks, maxDepth int) error {
 		res, err := http.Get(data.Url)
 		if err != nil {
 			return err
@@ -62,7 +62,7 @@ func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, m
 
 		_, err = s.repository.GetURL(context, data.Url) // CheckURL
 		if err != nil {
-			continue
+			return err
 		}
 
 		curURL := entity.URLList{
@@ -79,6 +79,7 @@ func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, m
 		doc.Find(data.Selector).Each(func(i int, selection *goquery.Selection) {
 			title := selection.Find(data.Text).Text()
 			words := separateText(&title)
+			fmt.Println(words)
 			if words != nil {
 				if crawlErr = s.indexingAndRecordingWords(context, words, curURL.ID); crawlErr != nil {
 					return
@@ -87,6 +88,10 @@ func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, m
 
 			link, exists := selection.Attr("href") 
 			if exists {
+				// if link[0] == '/' {
+				// 	link = 
+				// }
+
 				_, err = s.repository.GetURL(context, link)
 				if err != nil {
 					crawlErr = err
@@ -118,7 +123,6 @@ func (s *CrawlerService) Crawl(context context.Context, dataLinks []DataLinks, m
 		// url
 		// count words
 		// count addedUrls
-	}
 
 	return nil
 }

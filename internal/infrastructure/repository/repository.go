@@ -2,23 +2,25 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/infrastructure/repository/queries"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type DataRepository struct {
+type CrawlerRepository struct {
 	db *pgxpool.Pool
 	mu sync.RWMutex
 }
 
-func NewDataRepository(db *pgxpool.Pool) *DataRepository {
-	return &DataRepository{db: db}
+func NewCrawlerRepository(db *pgxpool.Pool) *CrawlerRepository {
+	return &CrawlerRepository{db: db}
 }
 
-func (s *DataRepository) AddWordList(context context.Context, wordList *entity.WordList) (int, error) {
+func (s *CrawlerRepository) AddWordList(context context.Context, wordList *entity.WordList) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -31,7 +33,7 @@ func (s *DataRepository) AddWordList(context context.Context, wordList *entity.W
 	return id, nil
 }
 
-func (s *DataRepository) DeleteWord(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteWord(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -39,20 +41,23 @@ func (s *DataRepository) DeleteWord(context context.Context, id int) error {
 	return err
 }
 
-func (s *DataRepository) GetWord(context context.Context, id int) (*entity.WordList, error) {
+func (s *CrawlerRepository) GetWord(context context.Context, id int) (*entity.WordList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var wordList entity.WordList
 	err := s.db.QueryRow(context, queries.GetWordList, id).Scan(&wordList)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &wordList, nil
 }
 
-func (s *DataRepository) AddURL(context context.Context, url *entity.URLList) (int, error) {
+func (s *CrawlerRepository) AddURL(context context.Context, url *entity.URLList) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -65,7 +70,7 @@ func (s *DataRepository) AddURL(context context.Context, url *entity.URLList) (i
 	return id, nil
 }
 
-func (s *DataRepository) DeleteURL(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteURL(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -73,20 +78,23 @@ func (s *DataRepository) DeleteURL(context context.Context, id int) error {
 	return err
 }
 
-func (s *DataRepository) GetURL(context context.Context, link string) (*entity.URLList, error) {
+func (s *CrawlerRepository) GetURL(context context.Context, link string) (*entity.URLList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var url entity.URLList
 	err := s.db.QueryRow(context, queries.GetUrlList, link).Scan(&url)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &url, nil
 }
 
-func (s *DataRepository) AddWordLocation(context context.Context, wordLocation *entity.WordLocation) (int, error) {
+func (s *CrawlerRepository) AddWordLocation(context context.Context, wordLocation *entity.WordLocation) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -99,7 +107,7 @@ func (s *DataRepository) AddWordLocation(context context.Context, wordLocation *
 	return id, nil
 }
 
-func (s *DataRepository) DeleteWordLocation(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteWordLocation(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -107,20 +115,23 @@ func (s *DataRepository) DeleteWordLocation(context context.Context, id int) err
 	return err
 }
 
-func (s *DataRepository) GetWordLocation(context context.Context, id int) (*entity.WordLocation, error) {
+func (s *CrawlerRepository) GetWordLocation(context context.Context, id int) (*entity.WordLocation, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var wordLocation entity.WordLocation
 	err := s.db.QueryRow(context, queries.GetWordLocation, id).Scan(&wordLocation)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &wordLocation, nil
 }
 
-func (s *DataRepository) AddLinkBetweenURLs(context context.Context, linkBetweenURL *entity.LinkBetweenURL) (int, error) {
+func (s *CrawlerRepository) AddLinkBetweenURLs(context context.Context, linkBetweenURL *entity.LinkBetweenURL) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -133,7 +144,7 @@ func (s *DataRepository) AddLinkBetweenURLs(context context.Context, linkBetween
 	return id, nil
 }
 
-func (s *DataRepository) DeleteLinkBetweenURLs(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteLinkBetweenURLs(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -141,20 +152,23 @@ func (s *DataRepository) DeleteLinkBetweenURLs(context context.Context, id int) 
 	return err
 }
 
-func (s *DataRepository) GetLinkBetweenURLs(context context.Context, id int) (*entity.LinkBetweenURL, error) {
+func (s *CrawlerRepository) GetLinkBetweenURLs(context context.Context, id int) (*entity.LinkBetweenURL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var linkBetweenURL entity.LinkBetweenURL
 	err := s.db.QueryRow(context, queries.GetLinkBetweenURL, id).Scan(&linkBetweenURL)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &linkBetweenURL, nil
 }
 
-func (s *DataRepository) AddLinkWord(context context.Context, linkWord *entity.LinkWord) (int, error) {
+func (s *CrawlerRepository) AddLinkWord(context context.Context, linkWord *entity.LinkWord) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -167,7 +181,7 @@ func (s *DataRepository) AddLinkWord(context context.Context, linkWord *entity.L
 	return id, nil
 }
 
-func (s *DataRepository) DeleteLinkWord(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteLinkWord(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -175,13 +189,16 @@ func (s *DataRepository) DeleteLinkWord(context context.Context, id int) error {
 	return err
 }
 
-func (s *DataRepository) GetLinkWord(context context.Context, id int) (*entity.LinkWord, error) {
+func (s *CrawlerRepository) GetLinkWord(context context.Context, id int) (*entity.LinkWord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var linkWord entity.LinkWord
 	err := s.db.QueryRow(context, queries.GetLinkWord, id).Scan(&linkWord)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

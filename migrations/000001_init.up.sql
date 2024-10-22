@@ -25,5 +25,5 @@ CREATE TABLE link_between_url (
 CREATE TABLE link_word (
     ID SERIAL PRIMARY KEY,
     fk_wordId INT REFERENCES word_list(ID),
-    fk_linkId INT REFERENCES link_between_url(ID)
+    fk_linkId INT REFERENCES url_list(ID)
 );

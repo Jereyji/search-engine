@@ -33,7 +33,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err = godotenv.Load(); err != nil {
+	if err = godotenv.Load("deployments/.env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -56,7 +56,7 @@ func main() {
 	}
 	defer postgresDB.Close()
 
-	repos := repository.NewDataRepository(postgresDB)
+	repos := repository.NewCrawlerRepository(postgresDB)
 	service := service.NewCrawlerService(repos)
 	handler := handler.NewCrawlerHandler(service)
 
@@ -64,9 +64,12 @@ func main() {
 	initializeRoutes(router, handler)
 
 	fmt.Println("Server is running...")
-	key := true
+	var key contextKey
+	key = "key"
 	server.ListenAndServe(context.WithValue(ctx, key, cfg.DataLinks), router)
 }
+
+type contextKey string
 
 const (
 	crawlCommand = "crawl"

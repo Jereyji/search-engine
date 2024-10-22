@@ -1,23 +1,4 @@
 services:
-  service:
-    container_name: search_engine
-    build:
-      context: ../
-      dockerfile: build/docker/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "9000:9000"
-    volumes:
-      - ../:/app
-    env_file: ".env"
-    environment:
-      - POSTGRES_ADDRESS=postgres
-    # command: >
-    #   sh -c 'make run-service'
-
-
   postgres:
     container_name: search_engine_db
     image: postgres:13

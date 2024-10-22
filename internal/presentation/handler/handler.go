@@ -10,8 +10,6 @@ import (
 	"github.com/Jereyji/search-engine/internal/pkg/writer"
 )
 
-type contextKey string
-
 type CrawlerHandler struct {
 	crawlerService *service.CrawlerService
 }
@@ -26,29 +24,31 @@ const (
 	depthFlags = "--depth"
 )
 
-func (h *CrawlerHandler) Crawl(ctx context.Context, w *writer.Writer, req *request.Request) {
-	log.Println(ctx)
-	
-	// depth, ok := req.GetValue(depthFlags).(int)
+func (h *CrawlerHandler) Crawl(ctx context.Context, w *writer.Writer, req *request.Request) {	
+	depth, ok := req.GetValue(depthFlags).(string)
+	if !ok {
+		w.Write(BadRequest(depthFlags))
+		return
+	}
+	fmt.Println(depth)
+
+	// dataLink, ok := req.GetValue(depthFlags).(string)
 	// if !ok {
 	// 	w.Write(BadRequest(depthFlags))
+	// 	log.Println("don't found links : ", dataLink)
 	// 	return
 	// }
 
-	key := contextKey("dataLinks")
-	// dataLinks := ctx.Value(key).([]service.DataLinks)
-	dataLinks := ctx.Value(key)
-	fmt.Println(dataLinks)
-	// dataLinks, ok := ctx.Value(key).([]service.DataLinks)
-	// if !ok {
-	// 	log.Println("don't found links : ", dataLinks)
-	// 	return
-	// }
-
-	// if err := h.crawlerService.Crawl(ctx, dataLinks, 1); err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
+	dataLink := service.DataLinks {
+		Url: "https://www.gazeta.ru/",
+		Selector: "a.b_ear",
+		Text: "div.b_ear-title",
+	}
+	
+	if err := h.crawlerService.Crawl(ctx, dataLink, 1); err != nil {
+		log.Println(err)
+		return
+	}
 
 	log.Println("GOOD")
 	// w.Write()

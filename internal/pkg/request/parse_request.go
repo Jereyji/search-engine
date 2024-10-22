@@ -23,8 +23,7 @@ func ParseRequest(input string) (*Request, error) {
 			return nil, fmt.Errorf("incorrect flag: %s", arg)
 		}
 
-		values := strings.Split(keyValue[1], ",")
-		req.SetFlag(keyValue[0], values[0])
+		req.SetFlag(keyValue[0], keyValue[1])
 	}
 
 	return req, nil
