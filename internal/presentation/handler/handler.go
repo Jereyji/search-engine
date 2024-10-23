@@ -2,21 +2,25 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
+	"strconv"
 
 	"github.com/Jereyji/search-engine/internal/application/service"
+	"github.com/Jereyji/search-engine/internal/pkg/config"
 	"github.com/Jereyji/search-engine/internal/pkg/request"
 	"github.com/Jereyji/search-engine/internal/pkg/writer"
 )
 
 type CrawlerHandler struct {
 	crawlerService *service.CrawlerService
+	config         *config.Config
 }
 
-func NewCrawlerHandler(crawlerService *service.CrawlerService) *CrawlerHandler {
+func NewCrawlerHandler(crawlerService *service.CrawlerService, cfg *config.Config) *CrawlerHandler {
 	return &CrawlerHandler{
 		crawlerService: crawlerService,
+		config:         cfg,
 	}
 }
 
@@ -24,32 +28,35 @@ const (
 	depthFlags = "--depth"
 )
 
-func (h *CrawlerHandler) Crawl(ctx context.Context, w *writer.Writer, req *request.Request) {	
-	depth, ok := req.GetValue(depthFlags).(string)
+func (h *CrawlerHandler) Crawl(ctx context.Context, w *writer.Writer, req *request.Request) {
+	depthStr, ok := req.GetValue(depthFlags).(string)
 	if !ok {
-		w.Write(BadRequest(depthFlags))
+		w.Write(BadRequest(MissingFlag, depthFlags))
 		return
 	}
-	fmt.Println(depth)
 
-	// dataLink, ok := req.GetValue(depthFlags).(string)
-	// if !ok {
-	// 	w.Write(BadRequest(depthFlags))
-	// 	log.Println("don't found links : ", dataLink)
-	// 	return
+	depth, err := strconv.Atoi(depthStr)
+	if err != nil {
+		w.Write(BadRequest(IncorrectData, depthStr))
+		return
+	}
+
+	// for _, dataLink := range h.config.DataLinks {
+	
+	res, err := h.crawlerService.Crawl(ctx, h.config.DataURLs[0], depth)
+	if err != nil {
+		w.Write(InternalError(err))
+		log.Println(err)
+		return
+	}
 	// }
 
-	dataLink := service.DataLinks {
-		Url: "https://www.gazeta.ru/",
-		Selector: "a.b_ear",
-		Text: "div.b_ear-title",
-	}
-	
-	if err := h.crawlerService.Crawl(ctx, dataLink, 1); err != nil {
+	output, err := json.Marshal(res)
+	if err != nil {
+		w.Write(InternalError(err))
 		log.Println(err)
 		return
 	}
 
-	log.Println("GOOD")
-	// w.Write()
+	w.Write(output)
 }

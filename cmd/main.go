@@ -58,15 +58,14 @@ func main() {
 
 	repos := repository.NewCrawlerRepository(postgresDB)
 	service := service.NewCrawlerService(repos)
-	handler := handler.NewCrawlerHandler(service)
+	handler := handler.NewCrawlerHandler(service, cfg)
 
 	router := router.NewRouter()
 	initializeRoutes(router, handler)
 
 	fmt.Println("Server is running...")
-	var key contextKey
-	key = "key"
-	server.ListenAndServe(context.WithValue(ctx, key, cfg.DataLinks), router)
+	server.ListenAndServe(ctx, router)
+	fmt.Println("Server is shutdowning...")
 }
 
 type contextKey string

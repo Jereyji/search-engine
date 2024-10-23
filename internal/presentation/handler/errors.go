@@ -5,12 +5,17 @@ import (
 	"log"
 )
 
-func BadRequest(flag string) []byte {
+const (
+	MissingFlag   = "missing required flag: "
+	IncorrectData = "incorrect data: "
+)
+
+func BadRequest(errMessage, value string) []byte {
 	errorMessage := map[string]string{
-		"error": "bad request",
-		"details": "you missing flag: " + flag,
+		"error":   "bad request",
+		"details": errMessage + value,
 	}
-	
+
 	res, err := json.Marshal(errorMessage)
 	if err != nil {
 		log.Println(err)
@@ -21,7 +26,7 @@ func BadRequest(flag string) []byte {
 
 func InternalError(err error) []byte {
 	errorMessage := map[string]string{
-		"error": "internal server error",
+		"error":   "internal server error",
 		"details": err.Error(),
 	}
 

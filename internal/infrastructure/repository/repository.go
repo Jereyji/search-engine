@@ -46,7 +46,7 @@ func (s *CrawlerRepository) GetWord(context context.Context, id int) (*entity.Wo
 	defer s.mu.RUnlock()
 
 	var wordList entity.WordList
-	err := s.db.QueryRow(context, queries.GetWordList, id).Scan(&wordList)
+	err := s.db.QueryRow(context, queries.GetWordList, id).Scan(&wordList.ID, &wordList.Word, &wordList.IsFiltred)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -83,7 +83,7 @@ func (s *CrawlerRepository) GetURL(context context.Context, link string) (*entit
 	defer s.mu.RUnlock()
 
 	var url entity.URLList
-	err := s.db.QueryRow(context, queries.GetUrlList, link).Scan(&url)
+	err := s.db.QueryRow(context, queries.GetUrlList, link).Scan(&url.ID, &url.Link)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -120,7 +120,7 @@ func (s *CrawlerRepository) GetWordLocation(context context.Context, id int) (*e
 	defer s.mu.RUnlock()
 
 	var wordLocation entity.WordLocation
-	err := s.db.QueryRow(context, queries.GetWordLocation, id).Scan(&wordLocation)
+	err := s.db.QueryRow(context, queries.GetWordLocation, id).Scan(&wordLocation.ID, &wordLocation.WordID, &wordLocation.URLID, &wordLocation.Location)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -157,7 +157,7 @@ func (s *CrawlerRepository) GetLinkBetweenURLs(context context.Context, id int) 
 	defer s.mu.RUnlock()
 
 	var linkBetweenURL entity.LinkBetweenURL
-	err := s.db.QueryRow(context, queries.GetLinkBetweenURL, id).Scan(&linkBetweenURL)
+	err := s.db.QueryRow(context, queries.GetLinkBetweenURL, id).Scan(&linkBetweenURL.ID, &linkBetweenURL.FromURLID, &linkBetweenURL.ToURLID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
