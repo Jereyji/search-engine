@@ -7,11 +7,11 @@ import (
 // Определяем структуру для конфигурации
 type Config struct {
 	DataURLs []struct {
-		URL             string `yaml:"url"`
-		TitleSelector   string `yaml:"title_selector"`
-		TitleText       string `yaml:"title_text"`
-		ArticleSelector string `yaml:"article_selector"`
-		ArticleLink     string `yaml:"article_link"`
+		URL            string `yaml:"url"`
+		TitleTextTag   string `yaml:"title_text_tag"`
+		TitleLinkTag   string `yaml:"title_link_tag"`
+		ArticleTextTag string `yaml:"article_text_tag"`
+		ArticleLinkTag string `yaml:"article_link_tag"`
 	} `yaml:"data_links"`
 }
 

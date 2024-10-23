@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	// "fmt"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -39,11 +39,11 @@ func NewCrawlerService(repository repository_interface.CrawlerRepository) *Crawl
 }
 
 type DataURL struct {
-	URL             string `yaml:"url"`
-	TitleSelector   string `yaml:"title_selector"`
-	TitleText       string `yaml:"title_text"`
-	ArticleSelector string `yaml:"article_selector"`
-	ArticleLink     string `yaml:"article_link"`
+	URL            string `yaml:"url"`
+	TitleTextTag   string `yaml:"title_text_tag"`
+	TitleLinkTag   string `yaml:"title_link_tag"`
+	ArticleTextTag string `yaml:"article_text_tag"`
+	ArticleLinkTag string `yaml:"article_link_tag"`
 }
 
 type Response struct {
@@ -85,33 +85,79 @@ func (s *CrawlerService) Crawl(ctx context.Context, data DataURL, depth int) (*R
 		if err != nil {
 			return nil, err
 		}
-		// func work with Articles
-		if res.CountWords, res.CountFilteredWords, err = s.parseArticle(ctx, doc, &URL, data.ArticleSelector); err != nil {
+
+		// func work with Titles
+		tempCountWords2, tempCountFilteredWords2, err := s.parseTitle(ctx, doc, &URL, data.TitleTextTag, data.TitleLinkTag)
+		if err != nil {
 			return nil, err
 		}
 
-		// func work with Titles
+		// func work with Articles
+		tempCountWords1, tempCountFilteredWords1, err := s.parseArticle(ctx, doc, &URL, data.ArticleTextTag, data.ArticleLinkTag)
+		if err != nil {
+			return nil, err
+		}
+
+		res.CountWords = tempCountWords1 + tempCountWords2
+		res.CountFilteredWords = tempCountFilteredWords1 + tempCountFilteredWords2
 	}
 
 	return &res, nil
 }
 
-func (s *CrawlerService) parseArticle(ctx context.Context, doc *goquery.Document, URL *entity.URLList, selector string) (int, int, error) {
+func (s *CrawlerService) parseTitle(ctx context.Context, doc *goquery.Document, URL *entity.URLList, titleTextTag, titleLinkTag string) (int, int, error) {
 	var (
 		countFilteredWords int
 		countWords         int
-		err                error
+		parsingErr         error
 	)
 
-	doc.Find(selector).Each(func(i int, selection *goquery.Selection) {
-		paragraphText := selection.Text()
+	fmt.Println(titleLinkTag, titleTextTag)
+	doc.Find(titleLinkTag).Each(func(i int, selection *goquery.Selection) {
+		link, exists := selection.Attr("href")
+		if !exists {
+			return
+		}
 
-		countWords, countFilteredWords, err = s.addText(ctx, paragraphText, URL.ID, notLinkWord)
+		relatedURL, err := s.addRelatedURL(ctx, URL.ID, link)
 		if err != nil {
 			return
 		}
 
-		selection.Find("a").Each(func(j int, linkSelection *goquery.Selection) {
+		linkText := selection.Find(titleTextTag).Text()
+		tempCountWords, tempFilteredWords, err := s.addText(ctx, linkText, relatedURL.ID, linkWord)
+		if err != nil {
+			parsingErr = err
+			return
+		}
+		fmt.Println(link, linkText)
+
+		countFilteredWords += tempFilteredWords
+		countWords += tempCountWords
+	})
+
+	return countWords, countFilteredWords, parsingErr
+}
+
+func (s *CrawlerService) parseArticle(ctx context.Context, doc *goquery.Document, URL *entity.URLList, articleTextTag, articleLinkTag string) (int, int, error) {
+	var (
+		countFilteredWords int
+		countWords         int
+		parsingErr         error
+	)
+
+	doc.Find(articleTextTag).Each(func(i int, selection *goquery.Selection) {
+		paragraphText := selection.Text()
+
+		tempCountWords, tempFilteredWords, parsingErr := s.addText(ctx, paragraphText, URL.ID, notLinkWord)
+		if parsingErr != nil {
+			return
+		}
+
+		countFilteredWords += tempFilteredWords
+		countWords += tempCountWords
+
+		selection.Find(articleLinkTag).Each(func(j int, linkSelection *goquery.Selection) {
 			link, exists := linkSelection.Attr("href")
 			if !exists {
 				return
@@ -125,6 +171,7 @@ func (s *CrawlerService) parseArticle(ctx context.Context, doc *goquery.Document
 			linkText := linkSelection.Text()
 			tempCountWords, tempFilteredWords, err := s.addText(ctx, linkText, relatedURL.ID, linkWord)
 			if err != nil {
+				parsingErr = err
 				return
 			}
 
@@ -133,7 +180,7 @@ func (s *CrawlerService) parseArticle(ctx context.Context, doc *goquery.Document
 		})
 	})
 
-	return countWords, countFilteredWords, err
+	return countWords, countFilteredWords, parsingErr
 }
 
 func (s *CrawlerService) addRelatedURL(ctx context.Context, fromURLID int, link string) (*entity.URLList, error) {
@@ -220,22 +267,3 @@ func newDoc(link string) (*goquery.Document, error) {
 
 	return doc, nil
 }
-
-// foundLink, exists := selection.Attr("href")
-// if !exists {
-// 	return
-// }
-
-// _, err = s.addRelatedURL(ctx, URL.ID, foundLink)
-// if err != nil {
-// 	return
-// }
-
-// func (s *CrawlerService) addURL(ctx context.Context, link string) (*entity.URLList, error) {
-// 	_, err := s.repository.GetURL(ctx, link)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &curURL, nil
-// }

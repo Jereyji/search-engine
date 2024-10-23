@@ -1,9 +1,9 @@
 data_links:
-  - url: "https://www.gazeta.ru/politics/news/2024/10/23/24218251.shtml"
-    title_selector: "a.b_ear.m_simple"
-    title_text: "div.b_ear-title"
-    article_selector: "div.b_article-text p"
-    article_link: "a"
+  - url: "https://www.gazeta.ru/"
+    title_text_tag: "div.b_ear-title"
+    title_link_tag: "a.b_ear"
+    article_text_tag: "div.b_article-text p"
+    article_link_tag: "a"
 
   # - url: "https://lenta.ru"
   #   selector: "a.card-mini._topnews"
