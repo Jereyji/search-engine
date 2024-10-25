@@ -41,17 +41,19 @@ func (h *CrawlerHandler) Crawl(ctx context.Context, w *writer.Writer, req *reque
 		return
 	}
 
-	// for _, dataLink := range h.config.DataLinks {
-	
-	res, err := h.crawlerService.Crawl(ctx, h.config.DataURLs[0], depth)
-	if err != nil {
-		w.Write(InternalError(err))
-		log.Println(err)
-		return
-	}
-	// }
+	var allResults []service.Response
 
-	output, err := json.Marshal(res)
+	for _, dataLink := range h.config.DataURLs {
+		res, err := h.crawlerService.Crawl(ctx, dataLink, depth)
+		if err != nil {
+			w.Write(InternalError(err))
+			log.Println(err)
+			return
+		}
+		allResults = append(allResults, res)
+	}
+
+	output, err := json.Marshal(allResults)
 	if err != nil {
 		w.Write(InternalError(err))
 		log.Println(err)
