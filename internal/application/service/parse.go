@@ -2,6 +2,8 @@ package service
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -29,13 +31,17 @@ func newDoc(link string) (*Document, error) {
 	return &Document{doc}, nil
 }
 
-func (d Document) parseTitle(titleTextTag, titleLinkTag string) []TitleInfo {
+func (d Document) parseTitle(baseURL, titleTextTag, titleLinkTag string) []TitleInfo {
 	var res []TitleInfo
 
 	d.doc.Find(titleLinkTag).Each(func(i int, selection *goquery.Selection) {
 		link, exists := selection.Attr("href")
 		if !exists {
 			return
+		}
+
+		if !isLinkValid(link) {
+			link = setBaseURL(link, baseURL)
 		}
 
 		linkText := selection.Find(titleTextTag).Text()
@@ -46,7 +52,7 @@ func (d Document) parseTitle(titleTextTag, titleLinkTag string) []TitleInfo {
 	return res
 }
 
-func (d Document) parseArticle(articleTextTag, articleLinkTag string) []ArticleInfo {
+func (d Document) parseArticle(baseURL, articleTextTag, articleLinkTag string) []ArticleInfo {
 	var res []ArticleInfo
 
 	d.doc.Find(articleTextTag).Each(func(i int, selection *goquery.Selection) {
@@ -59,12 +65,34 @@ func (d Document) parseArticle(articleTextTag, articleLinkTag string) []ArticleI
 				return
 			}
 
-			linkText := linkSelection.Text()
+			if !isLinkValid(link) {
+				link = setBaseURL(link, baseURL)
+			}
 			
-			res[i].RelatedLinks = append(res[i].RelatedLinks, link)
-			res[i].RelatedLinkTexts = append(res[i].RelatedLinkTexts, linkText)
+			res[i].RelatedLinks = append(res[i].RelatedLinks, TitleInfo{link, linkSelection.Text()})
 		})
 	})
 
 	return res
+}
+
+func isLinkValid(link string) bool {
+	return strings.HasPrefix(link, "http")
+}
+
+func getBaseURL(link string) string {
+	parsedURL, err := url.Parse(link)
+	if err != nil {
+		return ""
+	}
+
+	baseURL := parsedURL.Scheme + "://" + parsedURL.Host
+	return baseURL
+}
+
+func setBaseURL(link, baseURL string) string {
+	if !isLinkValid(link) {
+		return baseURL + link
+	}
+	return link
 }

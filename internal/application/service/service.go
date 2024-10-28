@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
-	"github.com/Jereyji/search-engine/internal/domain/repository_interface"
+	"github.com/Jereyji/search-engine/internal/domain/repository"
 )
 
 /*
@@ -21,17 +22,18 @@ FUNCS:
 - getEntryId(self, tableName, fieldName, value) - получение идентификатора и добавление записи (РАЗДЕЛИТЬ)
 */
 
+var ErrExistRow = errors.New("row already exists")
+
 const (
-	errExistRow = "row is exist"
-	linkWord    = true
-	notLinkWord = false
+	parsed    = true
+	notParsed = false
 )
 
 type CrawlerService struct {
-	repository repository_interface.CrawlerRepository
+	repository repository.CrawlerRepository
 }
 
-func NewCrawlerService(repository repository_interface.CrawlerRepository) *CrawlerService {
+func NewCrawlerService(repository repository.CrawlerRepository) *CrawlerService {
 	return &CrawlerService{
 		repository: repository,
 	}
@@ -56,21 +58,24 @@ type Response struct {
 // Выделение новые ссылки со страницы и добавляются в список обхода;
 // Далее паука переходит к следующему документу.
 
-func (s *CrawlerService) Crawl(ctx context.Context, data DataURL, depth int) ([]Response, error) {
+func (s *CrawlerService) Crawl(ctx context.Context, depth int, data DataURL) ([]Response, error) {
 	res := []Response{
 		{URL: data.URL},
 	}
 
-	dataURLList := []DataURL{data}
+	baseURL := getBaseURL(data.URL)
+	linksList := []string{data.URL}
 
-	for i := 0; i < depth; i++ {
-		for j, data := range dataURLList {
-			URL, err := s.ensureURLExists(ctx, data.URL)
+	for i, j := 0, 0; i < depth; i++ {
+		sizeLinksList := len(linksList)
+		// fmt.Println("cur size = ", j, sizeLinksList)
+		for ; j < sizeLinksList; j++ {
+			URL, err := s.ensureURLExists(ctx, linksList[j])
 			if err != nil {
 				return nil, err
 			}
 
-			if errors.Is(err, errors.New(errExistRow)) {
+			if URL.Is_parsed {
 				continue
 			}
 
@@ -79,29 +84,40 @@ func (s *CrawlerService) Crawl(ctx context.Context, data DataURL, depth int) ([]
 				return nil, err
 			}
 
-			parsedTitles := doc.parseTitle(data.TitleTextTag, data.TitleLinkTag)
+			parsedTitles := doc.parseTitle(baseURL, data.TitleTextTag, data.TitleLinkTag)
 			for _, title := range parsedTitles {
 				curRes, err := title.storeToRepository(ctx, s, URL)
 				if err != nil {
 					return nil, err
 				}
 
-				// dataURLList = append(dataURLList, curRes.LinkList)
-				res = append(res,  *curRes)
+				if curRes != nil {
+					linksList = append(linksList, title.Link)
+					res = append(res, *curRes)
+				}
+				fmt.Println("Title - ", *curRes)
 			}
 
-			parsedArticles := doc.parseArticle(data.ArticleTextTag, data.ArticleLinkTag)
+			parsedArticles := doc.parseArticle(baseURL, data.ArticleTextTag, data.ArticleLinkTag)
 			for _, article := range parsedArticles {
 				curRes, err := article.storeToRepository(ctx, s, URL)
 				if err != nil {
 					return nil, err
 				}
 
-				// dataURLList = append(dataURLList, curRes.LinkList)
-				res = append(res,  *curRes)
+				if curRes != nil {
+					for _, relatedLink := range article.RelatedLinks {
+						linksList = append(linksList, relatedLink.Link)
+					}
+					res = append(res, curRes...)
+				}
+				// fmt.Println("Article - ", curRes)
 			}
 
-			dataURLList = dataURLList[j:]
+			URL.ChangeParseStatus(parsed)
+			if err := s.repository.URLList.Update(ctx, URL); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -109,20 +125,21 @@ func (s *CrawlerService) Crawl(ctx context.Context, data DataURL, depth int) ([]
 }
 
 func (s *CrawlerService) ensureURLExists(ctx context.Context, link string) (*entity.URLList, error) {
-	tempURL, err := s.repository.GetURL(ctx, link)
+	tempURL, err := s.repository.URLList.URL(ctx, link)
 	if err != nil {
 		return nil, err
 	}
 
 	if tempURL != nil {
-		return tempURL, errors.New(errExistRow)
+		return tempURL, nil
 	}
 
 	URL := entity.URLList{
-		Link: link,
+		Link:      link,
+		Is_parsed: notParsed,
 	}
 
-	URL.ID, err = s.repository.AddURL(ctx, &URL)
+	URL.ID, err = s.repository.URLList.Create(ctx, &URL)
 	if err != nil {
 		return nil, err
 	}
@@ -131,12 +148,12 @@ func (s *CrawlerService) ensureURLExists(ctx context.Context, link string) (*ent
 }
 
 // add separated text and recording in wordList(word, isFiltered), wordLocation(wordID, urlID, index), linkWord(wordID, urlID)
-func (s *CrawlerService) addText(ctx context.Context, text string, urlID int, linked int) (int, int, error) {
+func (s *CrawlerService) addText(ctx context.Context, text *string, urlID int, linked int) (int, int, error) {
 	re := regexp.MustCompile(`^\d+$`)
 	countFilteredWords := 0
 	countWords := 0
 
-	words := strings.Fields(text)
+	words := strings.Fields(*text)
 	if words == nil {
 		return 0, 0, nil
 	}
@@ -148,18 +165,18 @@ func (s *CrawlerService) addText(ctx context.Context, text string, urlID int, li
 		}
 		countWords++
 
-		wordID, err := s.repository.AddWordList(ctx, &entity.WordList{Word: word, IsFiltred: needFiltered})
+		wordID, err := s.repository.WordList.Create(ctx, &entity.WordList{Word: word, IsFiltred: needFiltered})
 		if err != nil {
 			return 0, 0, err
 		}
 
-		_, err = s.repository.AddWordLocation(ctx, &entity.WordLocation{WordID: wordID, URLID: urlID, Location: i})
+		_, err = s.repository.WordLocation.Create(ctx, &entity.WordLocation{WordID: wordID, URLID: urlID, Location: i})
 		if err != nil {
 			return 0, 0, err
 		}
 
 		if linked != 0 {
-			_, err = s.repository.AddLinkWord(ctx, &entity.LinkWord{WordID: wordID, LinkID: linked})
+			_, err = s.repository.LinkWord.Create(ctx, &entity.LinkWord{WordID: wordID, LinkID: linked})
 			if err != nil {
 				return 0, 0, err
 			}

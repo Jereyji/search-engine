@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 )
@@ -13,26 +12,30 @@ type TitleInfo struct {
 }
 
 func (p *TitleInfo) storeToRepository(ctx context.Context, s *CrawlerService, URL *entity.URLList) (*Response, error) {
-	res := Response{
-		URL: URL.Link,
-	}
-
 	relatedURL, err := s.ensureURLExists(ctx, p.Link)
 	if err != nil {
 		return nil, err
 	}
 
-	if errors.Is(err, errors.New(errExistRow)) {
-		return &res, nil
+	if relatedURL.Is_parsed {
+		return nil, nil
 	}
 
-	curCountWords, curCountFilteredWords, err := s.addText(ctx, p.LinkText, relatedURL.ID, 0)
+	linkBetweenID, err := s.repository.LinkBetweenURLs.Create(ctx, &entity.LinkBetweenURL{FromURLID: URL.ID, ToURLID: relatedURL.ID})
 	if err != nil {
 		return nil, err
 	}
 
-	res.CountWords += curCountWords
-	res.CountFilteredWords += curCountFilteredWords
+	curCountWords, curCountFilteredWords, err := s.addText(ctx, &p.LinkText, relatedURL.ID, linkBetweenID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := Response{
+		URL:                relatedURL.Link,
+		CountWords:         curCountWords,
+		CountFilteredWords: curCountFilteredWords,
+	}
 
 	return &res, nil
 }

@@ -7,6 +7,7 @@ CREATE TABLE word_list (
 CREATE TABLE url_list (
     ID SERIAL PRIMARY KEY,
     link TEXT NOT NULL
+    is_parsed BOOL
 );
 
 CREATE TABLE word_location (
