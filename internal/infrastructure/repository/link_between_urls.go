@@ -3,24 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/infrastructure/repository/queries"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type LinkBetweenURLs struct {
-	db *pgxpool.Pool
-	mu sync.RWMutex
-}
-
-func NewLinkBetweenURLs(db *pgxpool.Pool) *LinkBetweenURLs {
-	return &LinkBetweenURLs{db: db}
-}
-
-func (s *LinkBetweenURLs) Create(context context.Context, linkBetweenURL *entity.LinkBetweenURL) (int, error) {
+func (s *CrawlerRepository) CreateLinkBetweenURLs(context context.Context, linkBetweenURL *entity.LinkBetweenURL) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +22,7 @@ func (s *LinkBetweenURLs) Create(context context.Context, linkBetweenURL *entity
 	return id, nil
 }
 
-func (s *LinkBetweenURLs) LinkBetweenURLs(context context.Context, id int) (*entity.LinkBetweenURL, error) {
+func (s *CrawlerRepository) LinkBetweenURLs(context context.Context, id int) (*entity.LinkBetweenURL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,7 +39,7 @@ func (s *LinkBetweenURLs) LinkBetweenURLs(context context.Context, id int) (*ent
 	return &linkBetweenURL, nil
 }
 
-func (s *LinkBetweenURLs) Update(context context.Context, linkBetweenURL *entity.LinkBetweenURL) error {
+func (s *CrawlerRepository) UpdateLinkBetweenURLs(context context.Context, linkBetweenURL *entity.LinkBetweenURL) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +47,7 @@ func (s *LinkBetweenURLs) Update(context context.Context, linkBetweenURL *entity
 	return err
 }
 
-func (s *LinkBetweenURLs) Delete(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteLinkBetweenURLs(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

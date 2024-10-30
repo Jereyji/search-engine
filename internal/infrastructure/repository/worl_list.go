@@ -3,24 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/infrastructure/repository/queries"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type WordList struct {
-	db *pgxpool.Pool
-	mu sync.RWMutex
-}
-
-func NewWordList(db *pgxpool.Pool) *WordList {
-	return &WordList{db: db}
-}
-
-func (s *WordList) Create(context context.Context, wordList *entity.WordList) (int, error) {
+func (s *CrawlerRepository) CreateWord(context context.Context, wordList *entity.WordList) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +22,7 @@ func (s *WordList) Create(context context.Context, wordList *entity.WordList) (i
 	return id, nil
 }
 
-func (s *WordList) Word(context context.Context, id int) (*entity.WordList, error) {
+func (s *CrawlerRepository) Word(context context.Context, id int) (*entity.WordList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,7 +39,7 @@ func (s *WordList) Word(context context.Context, id int) (*entity.WordList, erro
 	return &wordList, nil
 }
 
-func (s *WordList) Update(context context.Context, wordList *entity.WordList) error {
+func (s *CrawlerRepository) UpdateWord(context context.Context, wordList *entity.WordList) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +47,7 @@ func (s *WordList) Update(context context.Context, wordList *entity.WordList) er
 	return err
 }
 
-func (s *WordList) Delete(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteWord(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

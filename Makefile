@@ -7,10 +7,6 @@ DOCKER_COMPOSE_PATH=$(DEPLOYMENTS_PATH)/docker-compose.yaml
 env:
 	./scripts/create_env.sh
 
-.PHONY: build-service
-build-service:
-	docker-compose -p $(PROJECT_NAME) -f $(DOCKER_COMPOSE_PATH) build 
-
 .PHONY: up-service
 up-service: 
 	docker-compose -p $(PROJECT_NAME) -f $(DOCKER_COMPOSE_PATH) up -d

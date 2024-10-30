@@ -26,3 +26,38 @@ const (
 	UpdateLinkWord = "UPDATE link_word SET word_id = $1, link_id = $2 WHERE id = $3;"
 	DeleteLinkWord = "DELETE FROM link_word WHERE ID = $1;"
 )
+
+const MostIndexedDomains = `
+SELECT 
+    u.link AS domain,
+    COUNT(*) AS filtered_word_count
+FROM 
+    url_list AS u
+JOIN 
+    word_location AS wl ON u.ID = wl.fk_url_ID
+JOIN 
+    word_list AS w ON wl.fk_word_ID = w.ID
+WHERE 
+    w.is_filtred = true
+GROUP BY 
+    domain
+ORDER BY 
+    filtered_word_count DESC
+LIMIT 20;
+
+`
+
+const PopularWords = `
+SELECT 
+    w.word,
+    COUNT(*) AS word_count
+FROM 
+    word_list AS w
+JOIN 
+    word_location AS wl ON w.ID = wl.fk_word_ID
+GROUP BY 
+    w.word
+ORDER BY 
+    word_count DESC
+LIMIT 20;
+`

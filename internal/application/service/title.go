@@ -21,7 +21,7 @@ func (p *TitleInfo) storeToRepository(ctx context.Context, s *CrawlerService, UR
 		return nil, nil
 	}
 
-	linkBetweenID, err := s.repository.LinkBetweenURLs.Create(ctx, &entity.LinkBetweenURL{FromURLID: URL.ID, ToURLID: relatedURL.ID})
+	linkBetweenID, err := s.repository.CreateLinkBetweenURLs(ctx, &entity.LinkBetweenURL{FromURLID: URL.ID, ToURLID: relatedURL.ID})
 	if err != nil {
 		return nil, err
 	}

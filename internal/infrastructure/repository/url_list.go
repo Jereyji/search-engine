@@ -3,24 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/infrastructure/repository/queries"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type URLList struct {
-	db *pgxpool.Pool
-	mu sync.RWMutex
-}
-
-func NewURLList(db *pgxpool.Pool) *URLList {
-	return &URLList{db: db}
-}
-
-func (s *URLList) Create(context context.Context, url *entity.URLList) (int, error) {
+func (s *CrawlerRepository) CreateURL(context context.Context, url *entity.URLList) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +22,7 @@ func (s *URLList) Create(context context.Context, url *entity.URLList) (int, err
 	return id, nil
 }
 
-func (s *URLList) URL(context context.Context, link string) (*entity.URLList, error) {
+func (s *CrawlerRepository) URL(context context.Context, link string) (*entity.URLList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,7 +39,7 @@ func (s *URLList) URL(context context.Context, link string) (*entity.URLList, er
 	return &url, nil
 }
 
-func (s *URLList) Update(context context.Context, url *entity.URLList) error {
+func (s *CrawlerRepository) UpdateURL(context context.Context, url *entity.URLList) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +47,7 @@ func (s *URLList) Update(context context.Context, url *entity.URLList) error {
 	return err
 }
 
-func (s *URLList) Delete(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteURL(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -3,24 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/Jereyji/search-engine/internal/domain/entity"
 	"github.com/Jereyji/search-engine/internal/infrastructure/repository/queries"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type WordLocation struct {
-	db *pgxpool.Pool
-	mu sync.RWMutex
-}
-
-func NewWordLocation(db *pgxpool.Pool) *WordLocation {
-	return &WordLocation{db: db}
-}
-
-func (s *WordLocation) Create(context context.Context, wordLocation *entity.WordLocation) (int, error) {
+func (s *CrawlerRepository) CreateWordLocation(context context.Context, wordLocation *entity.WordLocation) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +22,7 @@ func (s *WordLocation) Create(context context.Context, wordLocation *entity.Word
 	return id, nil
 }
 
-func (s *WordLocation) WordLocation(context context.Context, id int) (*entity.WordLocation, error) {
+func (s *CrawlerRepository) WordLocation(context context.Context, id int) (*entity.WordLocation, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,7 +39,7 @@ func (s *WordLocation) WordLocation(context context.Context, id int) (*entity.Wo
 	return &wordLocation, nil
 }
 
-func (s *WordLocation) Update(context context.Context, wordLocation *entity.WordLocation) error {
+func (s *CrawlerRepository) UpdateWordLocation(context context.Context, wordLocation *entity.WordLocation) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +47,7 @@ func (s *WordLocation) Update(context context.Context, wordLocation *entity.Word
 	return err
 }
 
-func (s *WordLocation) Delete(context context.Context, id int) error {
+func (s *CrawlerRepository) DeleteWordLocation(context context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

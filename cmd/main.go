@@ -18,6 +18,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	crawlCommand          = "crawl"
+	getMostIndexedDomains = "get-most-indexed-domains"
+	getPopularWords       = "get-popular-words"
+)
+
 type ConfigDataBase struct {
 	Port     string `env:"DB_PORT" env-default:"5432"`
 	Host     string `env:"DB_HOST" env-default:"localhost"`
@@ -68,14 +74,8 @@ func main() {
 	fmt.Println("Server is shutdowning...")
 }
 
-type contextKey string
-
-const (
-	crawlCommand = "crawl"
-	getLinkText  = "get-link-text"
-	getListLinks = "get-list-links"
-)
-
 func initializeRoutes(router *router.Router, handler *handler.CrawlerHandler) {
 	router.HandleFunc(crawlCommand, handler.Crawl)
+	router.HandleFunc(getMostIndexedDomains, handler.PopularDomains)
+	router.HandleFunc(getPopularWords, handler.PopularWords)
 }
